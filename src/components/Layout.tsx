@@ -33,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+  <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -63,7 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
       
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        {children}
+  <div style={{ paddingBottom: '80px' }}>{children}</div>
       </main>
       <div className="w-full">
         <Footer />
