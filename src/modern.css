@@ -1,0 +1,186 @@
+@keyframes glow {
+  0% {
+    filter: brightness(1.1) drop-shadow(0 0 4px #fff3);
+  }
+  50% {
+    filter: brightness(1.3) drop-shadow(0 0 8px #fff6);
+  }
+  100% {
+    filter: brightness(1.1) drop-shadow(0 0 4px #fff3);
+  }
+}
+.animate-glow {
+  animation: glow 1.8s infinite alternate;
+}
+/* Modern, responsive CSS for a professional website */
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #3730a3;
+  --secondary: #f3f4f6;
+  --background: #f9fafb;
+  --text: #1f2937;
+  --card-bg: #fff;
+  --border: #e5e7eb;
+  --success: #22c55e;
+  --danger: #ef4444;
+}
+
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: var(--background);
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--primary);
+  color: #fff;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.navbar .logo {
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 1px;
+}
+.navbar .nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+.navbar .nav-links a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.navbar .nav-links a:hover {
+  color: var(--secondary);
+}
+
+/* Responsive Navbar */
+@media (max-width: 700px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+  }
+  .navbar .nav-links {
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Buttons */
+.button, button, input[type="submit"] {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(79,70,229,0.08);
+}
+.button:hover, button:hover, input[type="submit"]:hover {
+  background: var(--primary-dark);
+}
+.button.secondary {
+  background: var(--secondary);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+.button.secondary:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Forms */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+label {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+input, select, textarea {
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background: #fff;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.12);
+}
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(31,41,55,0.07);
+  padding: 2rem;
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.card:hover {
+  box-shadow: 0 6px 24px rgba(79,70,229,0.13);
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* Responsive Cards */
+@media (max-width: 700px) {
+  .card {
+    padding: 1rem;
+  }
+}
+
+/* Utility */
+.rounded {
+  border-radius: 0.5rem;
+}
+.text-center {
+  text-align: center;
+}
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.p-2 { padding: 0.5rem; }
+.p-4 { padding: 1rem; }
+
+/* Success & Danger */
+.success {
+  color: var(--success);
+}
+.danger {
+  color: var(--danger);
+}
+
+/* Mobile tweaks */
+@media (max-width: 500px) {
+  body {
+    font-size: 0.97rem;
+  }
+  .navbar {
+    font-size: 1rem;
+  }
+  .card {
+    padding: 0.7rem;
+  }
+}
