@@ -1,5 +1,5 @@
 import React from 'react';
-import Footer from '../../../../src/components/Footer';
+import Footer from './Footer';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, User, Shield, Store } from 'lucide-react';
 
