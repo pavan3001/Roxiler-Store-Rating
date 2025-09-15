@@ -14,13 +14,13 @@ const Footer = () => (
       </nav>
       {/* Social Icons */}
       <div className="flex gap-5">
-        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-2 rounded-full bg-gray-800 hover:bg-teal-500 transition-colors duration-200 shadow-md">
+        <a href="https://www.instagram.com/p_a_v_a_n.04/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-2 rounded-full bg-gray-800 hover:bg-teal-500 transition-colors duration-200 shadow-md">
           <FaInstagram size={20} />
         </a>
-        <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="p-2 rounded-full bg-gray-800 hover:bg-teal-500 transition-colors duration-200 shadow-md">
+        <a href="https://www.linkedin.com/in/pavan-kolipakula/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="p-2 rounded-full bg-gray-800 hover:bg-teal-500 transition-colors duration-200 shadow-md">
           <FaLinkedin size={20} />
         </a>
-        <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="p-2 rounded-full bg-gray-800 hover:bg-teal-500 transition-colors duration-200 shadow-md">
+        <a href="https://github.com/pavan3001" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="p-2 rounded-full bg-gray-800 hover:bg-teal-500 transition-colors duration-200 shadow-md">
           <FaGithub size={20} />
         </a>
       </div>
