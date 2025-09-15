@@ -86,23 +86,91 @@ const createTables = async () => {
     `);
 
     // Create default admin user
-    const [adminExists] = await connection.execute(
-      'SELECT id FROM users WHERE email = ? AND role = ?',
-      ['admin@roxiler.com', 'admin']
-    );
+    try {
+      const [adminExists] = await connection.execute(
+        'SELECT id FROM users WHERE email = ? AND role = ?',
+        ['admin@roxiler.com', 'admin']
+      );
+      if (adminExists.length === 0) {
+        await connection.execute(`
+          INSERT INTO users (name, email, password, address, role)
+          VALUES (?, ?, ?, ?, ?)
+        `, [
+          'System Administrator',
+          'admin@roxiler.com',
+          'Admin@123',
+          'System Admin Address',
+          'admin'
+        ]);
+        console.log('Default admin user created: admin@roxiler.com / Admin@123');
+      } else {
+        console.log('Default admin user already exists. Skipping creation.');
+      }
+    } catch (err) {
+      console.error('Error creating default admin user:', err.message);
+    }
 
-    if (adminExists.length === 0) {
+    // Seed sample users if none exist (excluding admin)
+    const [userCount] = await connection.execute('SELECT COUNT(*) as count FROM users WHERE role = "user"');
+    if (userCount[0].count === 0) {
+      await connection.execute(`
+        INSERT INTO users (name, email, password, address, role)
+        VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)
+      `, [
+        'John Doe', 'john@example.com', 'User@123', '123 Main St', 'user',
+        'Jane Smith', 'jane@example.com', 'User@123', '456 Oak Ave', 'user'
+      ]);
+      console.log('Sample users created.');
+    }
+
+    // Seed sample store owners if none exist
+    const [ownerCount] = await connection.execute('SELECT COUNT(*) as count FROM users WHERE role = "store_owner"');
+    if (ownerCount[0].count === 0) {
       await connection.execute(`
         INSERT INTO users (name, email, password, address, role)
         VALUES (?, ?, ?, ?, ?)
       `, [
-        'System Administrator',
-        'admin@roxiler.com',
-        'Admin@123',
-        'System Admin Address',
-        'admin'
+        'Store Owner', 'owner@example.com', 'Owner@123', '789 Pine Rd', 'store_owner'
       ]);
-      console.log('Default admin user created: admin@roxiler.com / Admin@123');
+      console.log('Sample store owner created.');
+    }
+
+    // Seed sample stores if none exist
+    const [storeCount] = await connection.execute('SELECT COUNT(*) as count FROM stores');
+    if (storeCount[0].count === 0) {
+      // Get owner id
+      const [owners] = await connection.execute('SELECT id FROM users WHERE role = "store_owner" LIMIT 1');
+      const ownerId = owners.length > 0 ? owners[0].id : null;
+      if (ownerId) {
+        await connection.execute(`
+          INSERT INTO stores (name, email, address, owner_id)
+          VALUES (?, ?, ?, ?), (?, ?, ?, ?)
+        `, [
+          'SuperMart', 'supermart@example.com', 'Market Street', ownerId,
+          'TechStore', 'techstore@example.com', 'Tech Avenue', ownerId
+        ]);
+        console.log('Sample stores created.');
+      }
+    }
+
+    // Seed sample ratings if none exist
+    const [ratingCount] = await connection.execute('SELECT COUNT(*) as count FROM ratings');
+    if (ratingCount[0].count === 0) {
+      // Get user and store ids
+      const [users] = await connection.execute('SELECT id, name FROM users WHERE role = "user"');
+      const [stores] = await connection.execute('SELECT id, name FROM stores');
+      if (users.length > 0 && stores.length > 0) {
+        // Insert ratings for each user on each store
+        for (const user of users) {
+          for (const store of stores) {
+            await connection.execute(
+              'INSERT INTO ratings (user_id, store_id, rating, rater_name) VALUES (?, ?, ?, ?)',
+              [user.id, store.id, Math.floor(Math.random() * 5) + 1, user.name]
+            );
+          }
+        }
+        console.log('Sample ratings created.');
+      }
     }
 
   } finally {

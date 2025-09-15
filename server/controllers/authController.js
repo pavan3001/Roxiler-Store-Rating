@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import { pool } from '../config/database.js';
+import bcrypt from 'bcryptjs';
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -77,8 +78,7 @@ const login = async (req, res) => {
     }
 
     const user = users[0];
-
-    // Check password (plaintext)
+    // Check password as plaintext
     if (password !== user.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -124,12 +124,12 @@ const updatePassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Verify current password (plaintext)
+    // Verify current password as plaintext
     if (currentPassword !== users[0].password) {
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
 
-    // Update password (plaintext)
+    // Update password as plaintext
     await pool.execute(
       'UPDATE users SET password = ? WHERE id = ?',
       [newPassword, userId]
