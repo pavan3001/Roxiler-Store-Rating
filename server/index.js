@@ -17,12 +17,22 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
-app.use(express.json());
+// Capture raw request body for debugging (temporary)
+app.use(express.json({ verify: (req, res, buf) => { try { req.rawBody = buf && buf.toString(); } catch (e) { req.rawBody = undefined; } } }));
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/stores', storeRoutes);
+
+// Temporary debug route - echo request headers/body and log raw body
+app.post('/api/debug/echo', (req, res) => {
+  console.log('--- DEBUG ECHO ---');
+  console.log('Headers:', req.headers);
+  console.log('Raw Body:', req.rawBody);
+  console.log('Parsed Body:', req.body);
+  res.json({ headers: req.headers, rawBody: req.rawBody, body: req.body });
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
