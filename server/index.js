@@ -41,8 +41,12 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  // Log full error for debugging
+  console.error('Global error handler caught:', err && err.stack ? err.stack : err);
+  // Temporarily return the real error message in the response to speed debugging.
+  // Remove or restrict this in production after debugging.
+  const message = err && err.message ? err.message : 'Something went wrong!';
+  res.status(500).json({ message });
 });
 
 // 404 handler
@@ -60,6 +64,7 @@ const startServer = async () => {
     await initializeDatabase();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      console.log('Server startup timestamp:', new Date().toISOString());
       console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
       console.log('Default admin credentials: admin@roxiler.com / Admin@123');
     });
