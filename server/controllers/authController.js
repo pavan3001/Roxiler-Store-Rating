@@ -7,8 +7,11 @@ const generateToken = (userId) => {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET is not defined in environment');
   }
+  // Use a safe default and coerce numeric strings to numbers
+  const rawExpires = process.env.JWT_EXPIRES_IN || '7d';
+  const expiresIn = /^\d+$/.test(String(rawExpires)) ? Number(rawExpires) : String(rawExpires);
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN
+    expiresIn
   });
 };
 
