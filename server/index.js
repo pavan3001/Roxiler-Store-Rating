@@ -17,22 +17,12 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
-// Capture raw request body for debugging (temporary)
-app.use(express.json({ verify: (req, res, buf) => { try { req.rawBody = buf && buf.toString(); } catch (e) { req.rawBody = undefined; } } }));
+app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/stores', storeRoutes);
-
-// Temporary debug route - echo request headers/body and log raw body
-app.post('/api/debug/echo', (req, res) => {
-  console.log('--- DEBUG ECHO ---');
-  console.log('Headers:', req.headers);
-  console.log('Raw Body:', req.rawBody);
-  console.log('Parsed Body:', req.body);
-  res.json({ headers: req.headers, rawBody: req.rawBody, body: req.body });
-});
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -41,12 +31,8 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  // Log full error for debugging
-  console.error('Global error handler caught:', err && err.stack ? err.stack : err);
-  // Temporarily return the real error message in the response to speed debugging.
-  // Remove or restrict this in production after debugging.
-  const message = err && err.message ? err.message : 'Something went wrong!';
-  res.status(500).json({ message });
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
 });
 
 // 404 handler
@@ -63,8 +49,7 @@ const startServer = async () => {
     }
     await initializeDatabase();
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log('Server startup timestamp:', new Date().toISOString());
+  console.log(`Server running on port ${PORT}`);
       console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
       console.log('Default admin credentials: admin@roxiler.com / Admin@123');
     });

@@ -93,15 +93,14 @@ const login = async (req, res) => {
       [email]
     );
 
-    console.log('Login attempt:', { email });
-    console.log('JWT_SECRET present:', !!process.env.JWT_SECRET);
+  // login attempt logged at debug level previously; removed for production
 
     if (users.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const user = users[0];
-    console.log('User from DB:', { id: user.id, email: user.email, password: user.password ? '[REDACTED]' : null, role: user.role });
+  // user retrieved from DB
     // Check password as plaintext
     if (password !== user.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
