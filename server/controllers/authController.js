@@ -4,6 +4,9 @@ import { pool } from '../config/database.js';
 import bcrypt from 'bcryptjs';
 
 const generateToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not defined in environment');
+  }
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN
   });
@@ -50,7 +53,7 @@ const register = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error:', error && error.stack ? error.stack : error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -73,11 +76,15 @@ const login = async (req, res) => {
       [email]
     );
 
+    console.log('Login attempt:', { email });
+    console.log('JWT_SECRET present:', !!process.env.JWT_SECRET);
+
     if (users.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const user = users[0];
+    console.log('User from DB:', { id: user.id, email: user.email, password: user.password ? '[REDACTED]' : null, role: user.role });
     // Check password as plaintext
     if (password !== user.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -96,7 +103,7 @@ const login = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Login error:', error && error.stack ? error.stack : error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -137,7 +144,7 @@ const updatePassword = async (req, res) => {
 
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
-    console.error('Update password error:', error);
+    console.error('Update password error:', error && error.stack ? error.stack : error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

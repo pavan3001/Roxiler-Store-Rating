@@ -2,11 +2,12 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+// load environment variables immediately so imported modules can use them
+dotenv.config();
 import { initializeDatabase } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import storeRoutes from './routes/stores.js';
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,6 +43,10 @@ app.use((req, res) => {
 // Initialize database and start server
 const startServer = async () => {
   try {
+    if (!process.env.JWT_SECRET) {
+      console.error('FATAL: JWT_SECRET is not set. Set JWT_SECRET in environment before starting the server.');
+      process.exit(1);
+    }
     await initializeDatabase();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
