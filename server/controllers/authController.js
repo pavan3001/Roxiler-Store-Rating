@@ -40,7 +40,13 @@ const register = async (req, res) => {
       [name, email, password, address, 'user']
     );
 
-    const token = generateToken(result.insertId);
+    let token;
+    try {
+      token = generateToken(result.insertId);
+    } catch (err) {
+      console.error('JWT generation error (register):', err && err.stack ? err.stack : err);
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -68,7 +74,15 @@ const login = async (req, res) => {
       });
     }
 
+    // Defensive checks: ensure body is present and contains required fields
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ message: 'Request body must be a JSON object' });
+    }
+
     const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
 
     // Find user
     const [users] = await pool.execute(
@@ -90,7 +104,13 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = generateToken(user.id);
+    let token;
+    try {
+      token = generateToken(user.id);
+    } catch (err) {
+      console.error('JWT generation error:', err && err.stack ? err.stack : err);
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
 
     res.json({
       message: 'Login successful',
