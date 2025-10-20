@@ -277,3 +277,25 @@ This project is created for the Roxiler coding challenge.
 ---
 
 **Built with ❤️ for Roxiler Systems**
+
+## How to test (PowerShell)
+
+If you're on Windows and using PowerShell, the easiest way to test the deployed backend is with `Invoke-RestMethod` or the included script.
+
+1. Run the provided script (uses the deployed Render URL):
+
+```powershell
+.
+\scripts\test-login.ps1
+```
+
+2. Or run manually:
+
+```powershell
+$body = @{ email='admin@roxiler.com'; password='Admin@123' } | ConvertTo-Json
+Invoke-RestMethod -Uri 'https://roxiler-store-rating-raiq.onrender.com/api/auth/login' -Method Post -Body $body -ContentType 'application/json'
+```
+
+Notes:
+- If you use `curl.exe` from PowerShell, prefer using a here-string or write the JSON to a file and use `--data-binary @file` to avoid quoting issues.
+- If the server returns 500, check Render Live Tail logs and verify `JWT_SECRET` and DB env vars are set in the Render dashboard.
