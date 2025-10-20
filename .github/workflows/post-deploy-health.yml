@@ -1,0 +1,71 @@
+name: Post-deploy health & smoke tests
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOYED_URL: ${{ secrets.DEPLOYED_URL }}
+      ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+    steps:
+      - name: Install deps
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq curl
+
+      - name: Wait for deploy to settle
+        run: |
+          echo "Waiting 20s for service to settle..."
+          sleep 20
+
+      - name: Health check (retry)
+        run: |
+          set -e
+          URL="$DEPLOYED_URL/api/health"
+          for i in {1..8}; do
+            echo "Checking health (attempt $i)..."
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "Healthy"
+              break
+            fi
+            echo "Status $status — retrying..."
+            sleep 10
+            if [ $i -eq 8 ]; then
+              echo "Health check failed"
+              exit 1
+            fi
+          done
+
+      - id: login
+        name: Login and get token
+        run: |
+          set -e
+          LOGIN_URL="$DEPLOYED_URL/api/auth/login"
+          resp=$(curl -sS -X POST "$LOGIN_URL" -H "Content-Type: application/json" -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}")
+          echo "Login response: $resp"
+          token=$(echo "$resp" | jq -r .token // empty)
+          if [ -z "$token" ] || [ "$token" = "null" ]; then
+            echo "Login failed. Response: $resp"
+            exit 1
+          fi
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Call protected endpoint
+        run: |
+          set -e
+          token=${{ steps.login.outputs.token }}
+          STORES_URL="$DEPLOYED_URL/api/stores"
+          resp=$(curl -sS -H "Authorization: Bearer $token" "$STORES_URL")
+          echo "Stores response: $resp"
+          # ensure we returned an array
+          is_array=$(echo "$resp" | jq 'if type=="array" then true else false end')
+          if [ "$is_array" != "true" ]; then
+            echo "Protected endpoint did not return an array"
+            exit 1
+          fi
