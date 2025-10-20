@@ -1,31 +1,70 @@
+// ...existing code...
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 dotenv.config();
 
+const DEFAULT = {
+  HOST: 'caboose.proxy.rlwy.net',
+  PORT: 38197,
+  USER: 'root',
+  PASSWORD: 'tlQmcZoqDweZpBESsUlAPIZdFgbIhlPC',
+  DATABASE: 'railway'
+};
+
+// try parse a full URL if provided by Railway (MYSQL_PUBLIC_URL or MYSQL_URL)
+const parseMysqlUrl = (url) => {
+  try {
+    const u = new URL(url);
+    return {
+      host: u.hostname,
+      port: u.port ? Number(u.port) : undefined,
+      user: u.username || undefined,
+      password: u.password || undefined,
+      database: u.pathname ? u.pathname.replace(/^\//, '') : undefined
+    };
+  } catch {
+    return {};
+  }
+};
+
+const publicUrlConfig = parseMysqlUrl(process.env.MYSQL_PUBLIC_URL || process.env.MYSQL_URL || '');
+
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'root',
-  database: process.env.DB_NAME || 'roxiler_store_rating',
+  host: process.env.DB_HOST || process.env.MYSQLHOST || publicUrlConfig.host || DEFAULT.HOST,
+  port: Number(process.env.DB_PORT || process.env.MYSQLPORT || publicUrlConfig.port || DEFAULT.PORT),
+  user: process.env.DB_USER || process.env.MYSQLUSER || publicUrlConfig.user || DEFAULT.USER,
+  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || publicUrlConfig.password || DEFAULT.PASSWORD,
+  database: process.env.DB_NAME || process.env.MYSQLDATABASE || publicUrlConfig.database || DEFAULT.DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 };
 
-const pool = mysql.createPool(dbConfig);
+const pool = mysql.createPool({
+  host: dbConfig.host,
+  port: dbConfig.port,
+  user: dbConfig.user,
+  password: dbConfig.password,
+  database: dbConfig.database,
+  waitForConnections: dbConfig.waitForConnections,
+  connectionLimit: dbConfig.connectionLimit,
+  queueLimit: dbConfig.queueLimit
+});
 
 // Initialize database and tables
 const initializeDatabase = async () => {
   try {
     const connection = await mysql.createConnection({
       host: dbConfig.host,
+      port: dbConfig.port,
       user: dbConfig.user,
-      password: dbConfig.password
+      password: dbConfig.password,
+      connectTimeout: 5000
     });
 
-    // Create database if it doesn't exist
-    await connection.execute(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
+    // Create database if it doesn't exist (escape name)
+    await connection.execute(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\``);
     await connection.end();
 
     // Create tables
@@ -69,7 +108,6 @@ const createTables = async () => {
     `);
 
     // Ratings table
-    // Create ratings table with rater_name column if it does not exist
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS ratings (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -179,3 +217,4 @@ const createTables = async () => {
 };
 
 export { pool, initializeDatabase };
+// ...existing code...
