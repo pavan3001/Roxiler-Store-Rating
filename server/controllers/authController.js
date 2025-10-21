@@ -19,6 +19,12 @@ const register = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      // Log validation errors for diagnostics (do not log passwords)
+      console.warn('Registration validation failed for request:', {
+        ip: req.ip,
+        body: { name: req.body.name, email: req.body.email, address: req.body.address, role: req.body.role },
+        errors: errors.array()
+      });
       return res.status(400).json({ 
         message: 'Validation failed', 
         errors: errors.array() 
@@ -26,6 +32,8 @@ const register = async (req, res) => {
     }
 
     const { name, email, password, address } = req.body;
+      // allow role from request, default to 'user'
+      const role = req.body.role && ['user', 'store_owner'].includes(req.body.role) ? req.body.role : 'user';
 
     // Check if user already exists
     const [existingUsers] = await pool.execute(
@@ -34,13 +42,14 @@ const register = async (req, res) => {
     );
 
     if (existingUsers.length > 0) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+      console.info('Registration attempt with existing email:', req.body.email);
+      return res.status(409).json({ message: 'User already exists with this email' });
     }
 
     // Store password as plaintext
     const [result] = await pool.execute(
       'INSERT INTO users (name, email, password, address, role) VALUES (?, ?, ?, ?, ?)',
-      [name, email, password, address, 'user']
+      [name, email, password, address, role]
     );
 
     let token;
@@ -58,7 +67,7 @@ const register = async (req, res) => {
         id: result.insertId,
         name,
         email,
-        role: 'user'
+        role
       }
     });
   } catch (error) {
@@ -174,8 +183,8 @@ const updatePassword = async (req, res) => {
 // Validation rules
 const registerValidation = [
   body('name')
-    .isLength({ min: 20, max: 60 })
-    .withMessage('Name must be between 20 and 60 characters'),
+    .isLength({ min: 5, max: 60 })
+    .withMessage('Name must be between 5 and 60 characters'),
   body('email')
     .isEmail()
     .withMessage('Please provide a valid email'),
@@ -188,6 +197,14 @@ const registerValidation = [
     .isLength({ max: 400 })
     .withMessage('Address must not exceed 400 characters')
 ];
+
+// Add role validation (optional) - accept only 'user' or 'store_owner'
+registerValidation.push(
+  body('role')
+    .optional()
+    .isIn(['user', 'store_owner'])
+    .withMessage('Invalid account type')
+);
 
 const loginValidation = [
   body('email').isEmail().withMessage('Please provide a valid email'),

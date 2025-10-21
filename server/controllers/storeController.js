@@ -92,28 +92,30 @@ const getStoreOwnerDashboard = async (req, res) => {
       return res.status(404).json({ message: 'No store found for this owner' });
     }
 
-    const storeId = stores[0].id;
+    // For each store, fetch average rating and rating users
+    const resultStores = [];
+    for (const s of stores) {
+      const storeId = s.id;
+      const [avgRating] = await pool.execute(
+        'SELECT COALESCE(AVG(rating), 0) as average_rating FROM ratings WHERE store_id = ?',
+        [storeId]
+      );
+      const [ratingUsers] = await pool.execute(`
+        SELECT u.name, u.email, r.rating, r.created_at
+        FROM ratings r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.store_id = ?
+        ORDER BY r.created_at DESC
+      `, [storeId]);
 
-    // Get average rating
-    const [avgRating] = await pool.execute(
-      'SELECT COALESCE(AVG(rating), 0) as average_rating FROM ratings WHERE store_id = ?',
-      [storeId]
-    );
+      resultStores.push({
+        store: s,
+        averageRating: parseFloat(avgRating[0].average_rating).toFixed(1),
+        ratingUsers
+      });
+    }
 
-    // Get users who rated this store
-    const [ratingUsers] = await pool.execute(`
-      SELECT u.name, u.email, r.rating, r.created_at
-      FROM ratings r
-      JOIN users u ON r.user_id = u.id
-      WHERE r.store_id = ?
-      ORDER BY r.created_at DESC
-    `, [storeId]);
-
-    res.json({
-      store: stores[0],
-      averageRating: parseFloat(avgRating[0].average_rating).toFixed(1),
-      ratingUsers
-    });
+    res.json({ stores: resultStores });
   } catch (error) {
     console.error('Store owner dashboard error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -125,3 +127,101 @@ export {
   submitRating,
   getStoreOwnerDashboard
 };
+
+// Create store for authenticated store owner
+const createStoreForOwner = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, email, address } = req.body;
+
+    if (!name || !email || !address) {
+      return res.status(400).json({ message: 'Name, email and address are required' });
+    }
+
+    // Check if store already exists by email
+    const [existingStores] = await pool.execute('SELECT id FROM stores WHERE email = ?', [email]);
+    if (existingStores.length > 0) {
+      return res.status(400).json({ message: 'Store already exists with this email' });
+    }
+
+      // NOTE: multiple stores per owner are allowed (no owner-specific guard)
+
+    const [result] = await pool.execute(
+      'INSERT INTO stores (name, email, address, owner_id) VALUES (?, ?, ?, ?)',
+      [name, email, address, userId]
+    );
+
+    res.status(201).json({
+      message: 'Store created successfully',
+      store: {
+        id: result.insertId,
+        name,
+        email,
+        address,
+        owner_id: userId
+      }
+    });
+  } catch (error) {
+    console.error('Create store for owner error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Update store for owner (only if owner owns the store)
+const updateStoreForOwner = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { name, email, address } = req.body;
+
+    // Ensure the store belongs to this owner
+    const [stores] = await pool.execute('SELECT owner_id FROM stores WHERE id = ?', [id]);
+    if (stores.length === 0) return res.status(404).json({ message: 'Store not found' });
+    if (stores[0].owner_id !== userId) return res.status(403).json({ message: 'Not allowed' });
+
+    // Build partial update
+    const fields = [];
+    const params = [];
+    if (typeof name !== 'undefined') { fields.push('name = ?'); params.push(name); }
+    if (typeof email !== 'undefined') { fields.push('email = ?'); params.push(email); }
+    if (typeof address !== 'undefined') { fields.push('address = ?'); params.push(address); }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ message: 'No fields provided to update' });
+    }
+
+    const sql = `UPDATE stores SET ${fields.join(', ')} WHERE id = ?`;
+    params.push(id);
+    const [result] = await pool.execute(sql, params);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Store not found' });
+    }
+    res.json({ message: 'Store updated successfully' });
+  } catch (error) {
+    console.error('updateStoreForOwner error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Delete store for owner (only if owner owns the store)
+const deleteStoreForOwner = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    // Ensure the store belongs to this owner
+    const [stores] = await pool.execute('SELECT owner_id FROM stores WHERE id = ?', [id]);
+    if (stores.length === 0) return res.status(404).json({ message: 'Store not found' });
+    if (stores[0].owner_id !== userId) return res.status(403).json({ message: 'Not allowed' });
+
+    await pool.execute('DELETE FROM stores WHERE id = ?', [id]);
+    res.json({ message: 'Store deleted successfully' });
+  } catch (error) {
+    console.error('deleteStoreForOwner error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export { updateStoreForOwner, deleteStoreForOwner };
+
+export { createStoreForOwner };

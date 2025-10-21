@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Store, Star, Plus, Search } from 'lucide-react';
+import { Users, Store, Star, Plus, Search, Edit3, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { DashboardStats, User, Store as StoreType } from '../types';
+
+interface Rating {
+  id: number | string;
+  rater_name?: string | null;
+  user_name?: string | null;
+  user_email?: string | null;
+  rating?: number | null;
+  comment?: string | null;
+  created_at?: string | Date | null;
+}
 import CreateUserModal from '../components/CreateUserModal';
 import CreateStoreModal from '../components/CreateStoreModal';
 import EditStoreModal from '../components/EditStoreModal';
@@ -32,7 +42,7 @@ const AdminDashboard: React.FC = () => {
 
   // Ratings modal state
   const [showRatingsModal, setShowRatingsModal] = useState(false);
-  const [ratings, setRatings] = useState<any[]>([]);
+  const [ratings, setRatings] = useState<Rating[]>([]);
   const [ratingsStore, setRatingsStore] = useState<StoreType | null>(null);
 
   const handleViewRatings = async (store: StoreType) => {
@@ -172,22 +182,22 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 gap-2">
           <button
             onClick={() => setShowCreateUser(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center justify-center sm:justify-start space-x-2 btn-gradient"
           >
             <Plus className="w-4 h-4" />
-            <span>Add User</span>
+            <span className="hidden sm:inline">Add User</span>
           </button>
           <button
             onClick={() => setShowCreateStore(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center justify-center sm:justify-start space-x-2 btn-gradient bg-green-600"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Store</span>
+            <span className="hidden sm:inline">Add Store</span>
           </button>
         </div>
       </div>
@@ -220,25 +230,16 @@ const AdminDashboard: React.FC = () => {
 
       {/* Overview Tab */}
       {activeTab === 'overview' && stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard
-            title="Total Users"
-            value={stats.totalUsers}
-            icon={Users}
-            color="bg-blue-500"
-          />
-          <StatCard
-            title="Total Stores"
-            value={stats.totalStores}
-            icon={Store}
-            color="bg-green-500"
-          />
-          <StatCard
-            title="Total Ratings"
-            value={stats.totalRatings}
-            icon={Star}
-            color="bg-yellow-500"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="stat-card">
+            <StatCard title="Total Users" value={stats.totalUsers} icon={Users} color="bg-blue-500" />
+          </div>
+          <div className="stat-card">
+            <StatCard title="Total Stores" value={stats.totalStores} icon={Store} color="bg-green-500" />
+          </div>
+          <div className="stat-card">
+            <StatCard title="Total Ratings" value={stats.totalRatings} icon={Star} color="bg-yellow-500" />
+          </div>
         </div>
       )}
 
@@ -325,14 +326,29 @@ const AdminDashboard: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <button
-                            className="px-2 py-1 bg-yellow-500 text-white rounded mr-2 hover:bg-yellow-600"
-                            onClick={() => handleEditUser(user)}
-                          >Edit</button>
-                          <button
-                            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                            onClick={() => handleDeleteUser(user.id)}
-                          >Delete</button>
+                          {user.email !== 'admin@roxiler.com' ? (
+                            <div className="flex items-center space-x-2">
+                              <button
+                                title="Edit user"
+                                aria-label="Edit user"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 transition-colors"
+                                onClick={() => handleEditUser(user)}
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+
+                              <button
+                                title="Delete user"
+                                aria-label="Delete user"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                                onClick={() => handleDeleteUser(user.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">System Administrator</span>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -383,7 +399,7 @@ const AdminDashboard: React.FC = () => {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full table-auto divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     {[
@@ -443,18 +459,34 @@ const AdminDashboard: React.FC = () => {
               }}
             />
           )}
-                          <button
-                            className="px-2 py-1 bg-yellow-500 text-white rounded mr-2 hover:bg-yellow-600"
-                            onClick={() => handleEditStore(store)}
-                          >Edit</button>
-                          <button
-                            className="px-2 py-1 bg-blue-500 text-white rounded mr-2 hover:bg-blue-600"
-                            onClick={() => handleViewRatings(store)}
-                          >View Ratings</button>
-                          <button
-                            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                            onClick={() => handleDeleteStore(store.id)}
-                          >Delete</button>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              title="Edit store"
+                              aria-label="Edit store"
+                              onClick={() => handleEditStore(store)}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 transition-colors ml-2"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              title="View ratings"
+                              aria-label="View ratings"
+                              onClick={() => handleViewRatings(store)}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                            >
+                              <Star className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              title="Delete store"
+                              aria-label="Delete store"
+                              onClick={() => handleDeleteStore(store.id)}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
       {/* Ratings Modal */}
       {showRatingsModal && ratingsStore && (
@@ -490,7 +522,7 @@ const AdminDashboard: React.FC = () => {
                         <td className="px-4 py-2 text-sm text-gray-500">{r.user_email || '-'}</td>
                         <td className="px-4 py-2 text-sm text-yellow-600 font-bold">{r.rating}</td>
                         <td className="px-4 py-2 text-sm text-gray-500">{r.comment || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-400">{new Date(r.created_at).toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-gray-400">{r.created_at ? new Date(r.created_at as string).toLocaleString() : '-'}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -329,29 +329,33 @@ const deleteUser = async (req, res) => {
 const updateStore = async (req, res) => {
   try {
     const { id } = req.params;
-    let { name, email, address, owner_id, ownerEmail } = req.body;
+    const { name, email, address, owner_id, ownerEmail } = req.body;
 
-    // If ownerEmail is provided, convert to owner_id
-    if (ownerEmail && !owner_id) {
-      const [owners] = await pool.execute(
-        'SELECT id FROM users WHERE email = ? AND role = ?',
-        [ownerEmail, 'store_owner']
-      );
+    // Build partial update
+    const fields = [];
+    const params = [];
+
+    if (typeof name !== 'undefined') { fields.push('name = ?'); params.push(name); }
+    if (typeof email !== 'undefined') { fields.push('email = ?'); params.push(email); }
+    if (typeof address !== 'undefined') { fields.push('address = ?'); params.push(address); }
+
+    let finalOwnerId = owner_id;
+    if (typeof ownerEmail !== 'undefined' && !finalOwnerId) {
+      const [owners] = await pool.execute('SELECT id FROM users WHERE email = ? AND role = ?', [ownerEmail, 'store_owner']);
       if (owners.length === 0) {
         return res.status(400).json({ message: 'Store owner not found with this email' });
       }
-      owner_id = owners[0].id;
+      finalOwnerId = owners[0].id;
+    }
+    if (typeof finalOwnerId !== 'undefined') { fields.push('owner_id = ?'); params.push(finalOwnerId); }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ message: 'No fields provided to update' });
     }
 
-    // If owner_id is still undefined, set to null
-    if (typeof owner_id === 'undefined') {
-      owner_id = null;
-    }
-
-    const [result] = await pool.execute(
-      'UPDATE stores SET name = ?, email = ?, address = ?, owner_id = ? WHERE id = ?',
-      [name, email, address, owner_id, id]
-    );
+    const sql = `UPDATE stores SET ${fields.join(', ')} WHERE id = ?`;
+    params.push(id);
+    const [result] = await pool.execute(sql, params);
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Store not found' });
     }

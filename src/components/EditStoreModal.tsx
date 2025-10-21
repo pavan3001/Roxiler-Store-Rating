@@ -8,23 +8,41 @@ import api from '../utils/api';
 import { Store, User } from '../types';
 
 const schema = yup.object({
-  name: yup.string().min(1, 'Store name is required').max(255, 'Store name must not exceed 255 characters').required('Store name is required'),
-  email: yup.string().email('Invalid email').required('Email is required'),
-  address: yup.string().min(1, 'Address is required').max(400, 'Address must not exceed 400 characters').required('Address is required'),
-  ownerEmail: yup.string().email('Invalid owner email').required('Owner email is required'),
+  // All fields optional for partial updates. Empty strings are treated as not-provided.
+  name: yup
+    .string()
+    .transform((v) => (v === '' ? undefined : v))
+    .max(255, 'Store name must not exceed 255 characters')
+    .optional(),
+  email: yup
+    .string()
+    .transform((v) => (v === '' ? undefined : v))
+    .email('Invalid email')
+    .optional(),
+  address: yup
+    .string()
+    .transform((v) => (v === '' ? undefined : v))
+    .max(400, 'Address must not exceed 400 characters')
+    .optional(),
+  ownerEmail: yup
+    .string()
+    .transform((v) => (v === '' ? undefined : v))
+    .email('Invalid owner email')
+    .optional(),
 });
 
 type FormData = yup.InferType<typeof schema>;
 
 interface EditStoreModalProps {
-  store: Store;
+  store: Partial<Store>;
   onClose: () => void;
   onSuccess: () => void;
+  forOwner?: boolean;
 }
 
-const EditStoreModal: React.FC<EditStoreModalProps> = ({ store, onClose, onSuccess }) => {
+const EditStoreModal: React.FC<EditStoreModalProps> = ({ store, onClose, onSuccess, forOwner = false }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [ownerId, setOwnerId] = useState<number | undefined>(store.owner_id);
+  // ownerId not needed for owner flow; admin owner lookups are done on submit when needed
 
   const {
     register,
@@ -32,7 +50,9 @@ const EditStoreModal: React.FC<EditStoreModalProps> = ({ store, onClose, onSucce
     setValue,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: yupResolver(schema),
+    // resolver typing can be strict in some TS setups — cast to any to avoid type mismatch
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: yupResolver(schema) as any,
     defaultValues: {
       name: store.name,
       email: store.email || '',
@@ -44,55 +64,90 @@ const EditStoreModal: React.FC<EditStoreModalProps> = ({ store, onClose, onSucce
   // Fetch and set initial owner email for editing
   React.useEffect(() => {
     async function fetchOwnerEmail() {
-      if (store.owner_id) {
-        try {
-          const res = await api.get(`/admin/users?role=store_owner`);
-          const owners: User[] = res.data;
-          const owner = owners.find(u => u.id === store.owner_id);
-          if (owner) {
-            setValue('ownerEmail', owner.email);
-            setOwnerId(owner.id);
+      if (!forOwner) {
+        if (store.owner_id) {
+          try {
+            const res = await api.get(`/admin/users?role=store_owner`);
+            const owners: User[] = res.data;
+            const owner = owners.find(u => u.id === store.owner_id);
+            if (owner) {
+              setValue('ownerEmail', owner.email);
+            }
+          } catch (fetchErr) {
+            setValue('ownerEmail', '');
+            console.debug('fetchOwnerEmail error', fetchErr);
           }
-        } catch {
+        } else {
           setValue('ownerEmail', '');
         }
       } else {
+        // for owners, ownerEmail is not editable; set to empty
         setValue('ownerEmail', '');
       }
     }
     fetchOwnerEmail();
-  }, [store.owner_id, setValue]);
+  }, [store.owner_id, setValue, forOwner]);
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      // Update the store's owner by email if changed
-      let newOwnerId = ownerId;
-      if (data.ownerEmail) {
-        const res = await api.get(`/admin/users?role=store_owner&search=${encodeURIComponent(data.ownerEmail)}`);
-        const owners: User[] = res.data;
-        const found = owners.find(u => u.email === data.ownerEmail);
-        if (found) {
-          newOwnerId = found.id;
-        } else {
-          // Optionally, create a new store owner user here if not found
-          toast.error('Store owner not found with this email');
+      // Build request body
+      // Build body with only provided (non-empty) values
+      const body: Record<string, unknown> = {};
+      if (typeof data.name === 'string' && data.name.trim() !== '') body.name = data.name.trim();
+      if (typeof data.email === 'string' && data.email.trim() !== '') body.email = data.email.trim();
+      if (typeof data.address === 'string' && data.address.trim() !== '') body.address = data.address.trim();
+
+  // Admin path: allow owner reassignment via ownerEmail lookup
+      if (!forOwner && data.ownerEmail) {
+        try {
+          const res = await api.get(`/admin/users?role=store_owner&search=${encodeURIComponent(data.ownerEmail)}`);
+          const owners: User[] = res.data;
+          const found = owners.find(u => u.email === data.ownerEmail);
+          if (!found) {
+            toast.error('Store owner not found with this email');
+            setIsLoading(false);
+            return;
+          }
+          body.owner_id = found.id;
+        } catch (errLookup) {
+          toast.error('Failed to lookup owner');
+          console.debug('owner lookup error', errLookup);
           setIsLoading(false);
           return;
         }
       }
-      await api.put(`/admin/stores/${store.id}`, {
-        name: data.name,
-        email: data.email,
-        address: data.address,
-        owner_id: newOwnerId,
-      });
+
+      if (!store?.id) {
+        toast.error('Store ID missing — cannot update');
+        setIsLoading(false);
+        return;
+      }
+
+      const endpoint = forOwner ? `/stores/${store.id}` : `/admin/stores/${store.id}`;
+      // debug before sending
+      try { console.debug('EditStoreModal PUT', { endpoint, body }); } catch (e) { console.debug('debug log failed', e); }
+      await api.put(endpoint, body);
       toast.success('Store updated successfully!');
       onSuccess();
     } catch (error: unknown) {
-      if (typeof error === 'object' && error !== null && 'response' in error) {
-        // @ts-expect-error: error type is unknown, may have response property from Axios
-        toast.error(error.response?.data?.message || 'Failed to update store');
+      // Improved error reporting for diagnostics
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err: any = error;
+      try {
+        console.debug('EditStoreModal submit error', {
+          status: err?.response?.status,
+          url: err?.config?.url,
+          data: err?.response?.data,
+        });
+      } catch (e) {
+        console.debug('debug log error', e);
+      }
+
+      if (err?.response?.status === 403) {
+        toast.error(err?.response?.data?.message || 'Access denied (403) — insufficient permissions');
+      } else if (err?.response?.data?.message) {
+        toast.error(err.response.data.message);
       } else {
         toast.error('Failed to update store');
       }

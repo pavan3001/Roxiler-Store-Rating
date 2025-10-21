@@ -45,7 +45,7 @@ export interface AuthResponse {
   user: User;
 }
 
-export interface StoreOwnerDashboard {
+export interface StoreOwnerDashboardStore {
   store: {
     id: number;
     name: string;
@@ -57,4 +57,8 @@ export interface StoreOwnerDashboard {
     rating: number;
     created_at: string;
   }>;
+}
+
+export interface StoreOwnerDashboard {
+  stores: StoreOwnerDashboardStore[];
 }

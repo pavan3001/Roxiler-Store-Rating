@@ -1,3 +1,85 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global design tokens */
+:root{
+	--brand-indigo: #5b21b6;
+	--brand-indigo-600: #4f46e5;
+	--brand-violet: #7c3aed;
+	--glass-bg: rgba(255,255,255,0.62);
+	--glass-border: rgba(255,255,255,0.4);
+}
+
+/* Page background subtle gradient */
+html,body,#root{
+	height:100%;
+}
+body{
+	@apply antialiased text-gray-800;
+	background: linear-gradient(180deg, rgba(239,246,255,0.6) 0%, rgba(245,255,253,0.6) 100%);
+	-webkit-font-smoothing:antialiased;
+	-moz-osx-font-smoothing:grayscale;
+}
+
+/* Glass card: used by auth and other cards for modern look */
+.glass-card{
+	background: var(--glass-bg);
+	border: 1px solid var(--glass-border);
+	box-shadow: 0 8px 30px rgba(2,6,23,0.08);
+	border-radius: 16px;
+	backdrop-filter: blur(8px) saturate(120%);
+}
+
+/* Gradient primary button - modern and slightly elevated */
+.btn-gradient{
+	background: linear-gradient(90deg,var(--brand-indigo-600),var(--brand-violet));
+	color: #fff;
+	border-radius: 10px;
+	padding: .6rem 1rem;
+	font-weight:600;
+	box-shadow: 0 10px 20px rgba(79,70,229,0.12);
+	transition: transform .15s ease, box-shadow .15s ease, opacity .12s;
+}
+.btn-gradient:hover{ transform: translateY(-2px); box-shadow: 0 14px 30px rgba(79,70,229,0.12); }
+.btn-gradient:active{ transform: translateY(0); }
+
+/* Icon button for compact actions */
+.icon-btn{
+	display:inline-flex; align-items:center; justify-content:center;
+	width:2rem; height:2rem; border-radius:9999px; transition:background-color .12s ease, color .12s ease, transform .12s ease; 
+}
+.icon-btn:hover{ transform: translateY(-2px); }
+
+/* Stat card helper — more open spacing */
+.stat-card{
+	border-radius: 12px; padding: 1rem; background: rgba(255,255,255,0.9); border:1px solid rgba(15,23,42,0.04);
+}
+
+/* Responsive table helpers */
+.responsive-table{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.responsive-table table{ min-width:700px; }
+
+/* Small-screen tweaks for tables: make action cells more compact */
+@media (max-width:640px){
+	.px-6{ padding-left:0.75rem; padding-right:0.75rem; }
+	.py-4{ padding-top:0.5rem; padding-bottom:0.5rem; }
+	.table-action-stack{ display:flex; gap:0.4rem; }
+}
+
+/* Auth page helpers */
+.auth-hero{ max-width:36rem; }
+.auth-card{ padding:2rem; border-radius:14px; }
+
+/* Small UI polishes */
+.muted-note{ background:#f8fafc; padding:.75rem; border-radius:10px; font-size:.85rem; color:#475569; }
+.shadow-soft{ box-shadow: 0 8px 24px rgba(2,6,23,0.06); }
+.rounded-xl-2{ border-radius:18px; }
+
+/* Nice scrollbar for overflow areas */
+.responsive-table::-webkit-scrollbar{ height:10px; }
+.responsive-table::-webkit-scrollbar-thumb{ background:rgba(15,23,42,0.08); border-radius:8px; }
+
+/* Utility: subtle glow for role badges */
+.role-glow{ text-shadow: 0 0 8px rgba(99,102,241,0.16); }
+

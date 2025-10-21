@@ -26,9 +26,10 @@ type FormData = yup.InferType<typeof schema>;
 interface CreateStoreModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  forOwner?: boolean; // if true, post to /stores (owner endpoint)
 }
 
-const CreateStoreModal: React.FC<CreateStoreModalProps> = ({ onClose, onSuccess }) => {
+const CreateStoreModal: React.FC<CreateStoreModalProps> = ({ onClose, onSuccess, forOwner = false }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -36,17 +37,31 @@ const CreateStoreModal: React.FC<CreateStoreModalProps> = ({ onClose, onSuccess 
     handleSubmit,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: yupResolver(schema),
+    // resolver typing from yupResolver can be incompatible with strict generic inference in some TS setups
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: yupResolver(schema) as any,
   });
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      await api.post('/admin/stores', data);
+  const endpoint = forOwner ? '/stores' : '/admin/stores';
+  await api.post(endpoint, data);
       toast.success('Store created successfully!');
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create store');
+    } catch (error: unknown) {
+  // Safely access axios-style response if present
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const err: any = error as any;
+  // If owner already has a store, show the message and refresh/close modal to avoid repeated attempts
+  if (forOwner && err?.response?.status === 409) {
+    toast.error(err?.response?.data?.message || 'Owner already has a store');
+    // refresh parent and close modal
+  try { onSuccess(); } catch (e) { console.debug('onSuccess callback error', e); }
+    return;
+  }
+
+  toast.error(err?.response?.data?.message || 'Failed to create store');
     } finally {
       setIsLoading(false);
     }
@@ -111,23 +126,25 @@ const CreateStoreModal: React.FC<CreateStoreModalProps> = ({ onClose, onSuccess 
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Store Owner Email (Optional)
-            </label>
-            <input
-              {...register('ownerEmail')}
-              type="email"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter store owner email (must be a store_owner user)"
-            />
-            {errors.ownerEmail && (
-              <p className="mt-1 text-sm text-red-600">{errors.ownerEmail.message}</p>
-            )}
-            <p className="mt-1 text-xs text-gray-500">
-              Leave empty if no specific owner, or enter email of an existing store owner user
-            </p>
-          </div>
+          {!forOwner && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Store Owner Email (Optional)
+              </label>
+              <input
+                {...register('ownerEmail')}
+                type="email"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter store owner email (must be a store_owner user)"
+              />
+              {errors.ownerEmail && (
+                <p className="mt-1 text-sm text-red-600">{errors.ownerEmail.message}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Leave empty if no specific owner, or enter email of an existing store owner user
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3 pt-4">
             <button

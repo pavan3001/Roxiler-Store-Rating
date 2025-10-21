@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Star, MapPin, Edit3, Settings } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Star, MapPin, Edit3, Settings, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { Store } from '../types';
 import RatingModal from '../components/RatingModal';
+import EditStoreModal from '../components/EditStoreModal';
 import UpdatePasswordModal from '../components/UpdatePasswordModal';
 
 const StoreList: React.FC = () => {
@@ -11,15 +12,28 @@ const StoreList: React.FC = () => {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState({ field: 'name', order: 'asc' });
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  // restore selected store id from localStorage across sessions
+  const restoreSelectedStore = (storesList: Store[]) => {
+    try {
+      const stored = localStorage.getItem('selectedStoreId');
+      if (stored) {
+        const id = Number(stored);
+        if (!Number.isNaN(id)) {
+          const found = storesList.find(s => s.id === id);
+          if (found) setSelectedStore(found);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showEditStore, setShowEditStore] = useState(false);
+  const [editStoreData, setEditStoreData] = useState<Store | null>(null);
 
-  useEffect(() => {
-    fetchStores();
-  }, [search, sort]);
-
-  const fetchStores = async () => {
+  const fetchStores = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
@@ -28,12 +42,20 @@ const StoreList: React.FC = () => {
 
       const response = await api.get(`/stores?${params}`);
       setStores(response.data);
-    } catch (error) {
+      // restore selection after we have the fresh list
+      restoreSelectedStore(response.data);
+    } catch (err) {
+      // keep user-facing toast, and debug log for devs
       toast.error('Failed to fetch stores');
+  console.debug('fetchStores error', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, sort]);
+
+  useEffect(() => {
+    fetchStores();
+  }, [fetchStores]);
 
   const handleSort = (field: string) => {
     setSort(prev => ({
@@ -130,22 +152,71 @@ const StoreList: React.FC = () => {
         {stores.map((store) => (
           <div
             key={store.id}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+            className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow ${
+              selectedStore?.id === store.id ? 'border-indigo-500 ring-2 ring-indigo-100' : 'border-gray-100'
+            }`}
+            aria-selected={selectedStore?.id === store.id}
           >
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-semibold text-gray-900 truncate">
                 {store.name}
               </h3>
-              <button
-                onClick={() => {
-                  setSelectedStore(store);
-                  setShowRatingModal(true);
-                }}
-                className="flex items-center space-x-1 px-3 py-1 text-sm text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors"
-              >
-                <Edit3 className="w-3 h-3" />
-                <span>Rate</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                {selectedStore?.id === store.id && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                    Selected
+                    <button
+                      title="Clear selection"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedStore(null);
+                        try { localStorage.removeItem('selectedStoreId'); } catch (e) { console.debug('localStorage remove error', e); }
+                      }}
+                      className="ml-2 text-indigo-500 hover:text-indigo-700"
+                    >✕</button>
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedStore(store);
+                    try { localStorage.setItem('selectedStoreId', String(store.id)); } catch (e) { console.debug('localStorage set error', e); }
+                    setShowRatingModal(true);
+                  }}
+                  className="flex items-center space-x-1 px-3 py-1 text-sm text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>Rate</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setEditStoreData(store);
+                    setShowEditStore(true);
+                  }}
+                  title="Edit store"
+                  aria-label={`Edit ${store.name}`}
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 transition-colors"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('Are you sure you want to delete this store?')) return;
+                    try {
+                      await api.delete(`/admin/stores/${store.id}`);
+                      toast.success('Store deleted successfully');
+                      fetchStores();
+                    } catch (err) {
+                      toast.error('Failed to delete store');
+                      console.debug('delete store error', err);
+                    }
+                  }}
+                  title="Delete store"
+                  aria-label={`Delete ${store.name}`}
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="flex items-start space-x-2 mb-4">
@@ -157,9 +228,11 @@ const StoreList: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Overall Rating</span>
                 <div className="flex items-center space-x-2">
-                  {renderStars(Math.round(store.overall_rating))}
+                  {renderStars(Math.round(store.overall_rating ?? 0))}
                   <span className="text-sm text-gray-600">
-                    {parseFloat(store.overall_rating.toString()).toFixed(1)}
+                    {store.overall_rating !== undefined && store.overall_rating !== null
+                      ? parseFloat(store.overall_rating.toString()).toFixed(1)
+                      : '-'}
                   </span>
                   <span className="text-xs text-gray-400">
                     ({store.total_ratings})
@@ -210,6 +283,21 @@ const StoreList: React.FC = () => {
             setSelectedStore(null);
           }}
           onSuccess={handleRatingSubmit}
+        />
+      )}
+
+      {showEditStore && editStoreData && (
+        <EditStoreModal
+          store={editStoreData}
+          onClose={() => {
+            setShowEditStore(false);
+            setEditStoreData(null);
+          }}
+          onSuccess={() => {
+            setShowEditStore(false);
+            setEditStoreData(null);
+            fetchStores();
+          }}
         />
       )}
 
