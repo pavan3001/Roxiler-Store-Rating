@@ -83,3 +83,14 @@ body{
 /* Utility: subtle glow for role badges */
 .role-glow{ text-shadow: 0 0 8px rgba(99,102,241,0.16); }
 
+/* Standard modal overlay used across the app */
+.modal-overlay{
+	background: rgba(0,0,0,0.60); /* stronger backdrop for admin/primary modals */
+}
+
+/* Lighter modal overlay used for store-related pages (less blackness behind store modals) */
+.modal-overlay-light{
+	background: rgba(0,0,0,0.28); /* reduced darkness for store modals */
+	backdrop-filter: blur(2px); /* soften the backdrop slightly */
+}
+

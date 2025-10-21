@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Star, MapPin, Edit3, Settings, Trash2 } from 'lucide-react';
+import { Search, Star, MapPin, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { Store } from '../types';
 import RatingModal from '../components/RatingModal';
-import EditStoreModal from '../components/EditStoreModal';
 import UpdatePasswordModal from '../components/UpdatePasswordModal';
 
 const StoreList: React.FC = () => {
@@ -30,8 +29,7 @@ const StoreList: React.FC = () => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showEditStore, setShowEditStore] = useState(false);
-  const [editStoreData, setEditStoreData] = useState<Store | null>(null);
+  // edit modal removed — actions hidden on this page
 
   const fetchStores = useCallback(async () => {
     try {
@@ -65,11 +63,7 @@ const StoreList: React.FC = () => {
   };
 
   const handleRatingSubmit = (storeId: number, rating: number) => {
-    setStores(prev => prev.map(store => 
-      store.id === storeId 
-        ? { ...store, user_rating: rating }
-        : store
-    ));
+    setStores(prev => prev.map(s => s.id === storeId ? { ...s, user_rating: rating } : s));
   };
 
   const renderStars = (rating: number, interactive = false, onClick?: (rating: number) => void) => {
@@ -182,39 +176,13 @@ const StoreList: React.FC = () => {
                     try { localStorage.setItem('selectedStoreId', String(store.id)); } catch (e) { console.debug('localStorage set error', e); }
                     setShowRatingModal(true);
                   }}
+                  title={`Rate ${store.name}`}
+                  aria-label={`Rate ${store.name}`}
+                  data-store-id={store.id}
                   className="flex items-center space-x-1 px-3 py-1 text-sm text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors"
                 >
-                  <Edit3 className="w-3 h-3" />
-                  <span>Rate</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setEditStoreData(store);
-                    setShowEditStore(true);
-                  }}
-                  title="Edit store"
-                  aria-label={`Edit ${store.name}`}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 transition-colors"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Are you sure you want to delete this store?')) return;
-                    try {
-                      await api.delete(`/admin/stores/${store.id}`);
-                      toast.success('Store deleted successfully');
-                      fetchStores();
-                    } catch (err) {
-                      toast.error('Failed to delete store');
-                      console.debug('delete store error', err);
-                    }
-                  }}
-                  title="Delete store"
-                  aria-label={`Delete ${store.name}`}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
+                  <Star className="w-3 h-3" />
+                  <span className="text-sm">Rate</span>
                 </button>
               </div>
             </div>
@@ -282,21 +250,10 @@ const StoreList: React.FC = () => {
             setShowRatingModal(false);
             setSelectedStore(null);
           }}
-          onSuccess={handleRatingSubmit}
-        />
-      )}
-
-      {showEditStore && editStoreData && (
-        <EditStoreModal
-          store={editStoreData}
-          onClose={() => {
-            setShowEditStore(false);
-            setEditStoreData(null);
-          }}
-          onSuccess={() => {
-            setShowEditStore(false);
-            setEditStoreData(null);
-            fetchStores();
+          onSuccess={(storeId, rating) => {
+            handleRatingSubmit(storeId, rating);
+            setShowRatingModal(false);
+            setSelectedStore(null);
           }}
         />
       )}

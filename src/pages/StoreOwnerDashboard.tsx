@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Users, Settings, Edit3, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../utils/api';
+import api, { getWithCache, prefetch } from '../utils/api';
 import { StoreOwnerDashboard as StoreOwnerDashboardType } from '../types';
 import UpdatePasswordModal from '../components/UpdatePasswordModal';
 import EditStoreModal from '../components/EditStoreModal';
@@ -22,12 +22,15 @@ const StoreOwnerDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboard();
+    // Prefetch admin/store list to speed navigation if user visits stores list next
+    prefetch('/stores');
   }, []);
 
   const fetchDashboard = async () => {
     try {
-      const response = await api.get('/stores/owner/dashboard');
-      setDashboard(response.data);
+      const result = await getWithCache('/stores/owner/dashboard', { ttlMs: 8_000 });
+      // result may be { data, cached }
+      setDashboard(result.data as StoreOwnerDashboardType);
     } catch (error: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const err: any = error as any;
@@ -79,7 +82,17 @@ const StoreOwnerDashboard: React.FC = () => {
             Add Store
           </button>
         </div>
-        {/* modal rendering moved to main return so header Add Store always works */}
+        {/* Also render the CreateStoreModal here so owners without a dashboard can add a store */}
+        {showCreateStore && (
+          <CreateStoreModal
+            forOwner={true}
+            onClose={() => setShowCreateStore(false)}
+            onSuccess={() => {
+              setShowCreateStore(false);
+              fetchDashboard();
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -147,7 +160,20 @@ const StoreOwnerDashboard: React.FC = () => {
                     toast.success('Store deleted successfully');
                     // Refresh dashboard and reset index
                     setSelectedStoreIndex(0);
-                    fetchDashboard();
+                    try {
+                      const result = await getWithCache('/stores/owner/dashboard', { force: true });
+                      setDashboard(result.data as StoreOwnerDashboardType);
+                    } catch (err: unknown) {
+                      // If the dashboard endpoint returns 404 (no stores), clear dashboard state
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const e: any = err as any;
+                      if (e?.response?.status === 404) {
+                        setDashboard(null);
+                      } else {
+                        // fallback to re-fetch via original method
+                        fetchDashboard();
+                      }
+                    }
                   } catch (err) {
                     toast.error('Failed to delete store');
                     console.debug('owner delete error', err);

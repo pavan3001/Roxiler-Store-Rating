@@ -74,3 +74,44 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// Simple in-memory cache for GET requests
+type CacheEntry = {
+  data: unknown;
+  expiresAt: number;
+};
+
+const cache = new Map<string, CacheEntry>();
+
+/**
+ * Get with simple in-memory cache and TTL.
+ * - url: relative URL passed to axios (eg '/stores/owner/dashboard')
+ * - opts: { ttlMs?: number, force?: boolean }
+ */
+export async function getWithCache(url: string, opts?: { ttlMs?: number; force?: boolean }) {
+  const ttlMs = opts?.ttlMs ?? 10_000; // 10s default
+  const force = !!opts?.force;
+  const key = url;
+
+  if (!force) {
+    const entry = cache.get(key);
+    if (entry && entry.expiresAt > Date.now()) {
+      return { data: entry.data, cached: true };
+    }
+  }
+
+  const resp = await api.get(url);
+  cache.set(key, { data: resp.data, expiresAt: Date.now() + ttlMs });
+  return { data: resp.data, cached: false };
+}
+
+/** Prefetch a url into cache (fire-and-forget). */
+export function prefetch(url: string, ttlMs = 10_000) {
+  const key = url;
+  // don't prefetch if already cached
+  const entry = cache.get(key);
+  if (entry && entry.expiresAt > Date.now()) return;
+  api.get(url)
+    .then((r) => cache.set(key, { data: r.data, expiresAt: Date.now() + ttlMs }))
+    .catch(() => { /* ignore prefetch errors */ });
+}

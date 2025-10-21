@@ -61,7 +61,7 @@ const UpdatePasswordModal: React.FC<UpdatePasswordModalProps> = ({ onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div className="fixed inset-0 flex items-center justify-center p-4 z-50 modal-overlay">
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-bold text-gray-900">Update Password</h2>

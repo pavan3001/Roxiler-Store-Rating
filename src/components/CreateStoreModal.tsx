@@ -50,103 +50,79 @@ const CreateStoreModal: React.FC<CreateStoreModalProps> = ({ onClose, onSuccess,
       toast.success('Store created successfully!');
       onSuccess();
     } catch (error: unknown) {
-  // Safely access axios-style response if present
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const err: any = error as any;
-  // If owner already has a store, show the message and refresh/close modal to avoid repeated attempts
-  if (forOwner && err?.response?.status === 409) {
-    toast.error(err?.response?.data?.message || 'Owner already has a store');
-    // refresh parent and close modal
-  try { onSuccess(); } catch (e) { console.debug('onSuccess callback error', e); }
-    return;
-  }
-
-  toast.error(err?.response?.data?.message || 'Failed to create store');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err: any = error as any;
+      toast.error(err?.response?.data?.message || 'Failed to create store');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+  <div className="fixed inset-0 flex items-center justify-center p-4 z-50 modal-overlay-light">
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-bold text-gray-900">Create New Store</h2>
           <button
             onClick={onClose}
+            aria-label="Close create store"
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Store Name
-            </label>
-            <input
-              {...register('name')}
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter store name"
-            />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-            )}
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Store Name</label>
+              <input
+                {...register('name')}
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter store name"
+              />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Store Email</label>
+              <input
+                {...register('email')}
+                type="email"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter store email address"
+              />
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Store Email
-            </label>
-            <input
-              {...register('email')}
-              type="email"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter store email address"
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Store Address
-            </label>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Store Address</label>
             <textarea
               {...register('address')}
-              rows={3}
+              rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
               placeholder="Enter store address (max 400 characters)"
             />
-            {errors.address && (
-              <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
-            )}
+            {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>}
           </div>
 
           {!forOwner && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Store Owner Email (Optional)
-              </label>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Store Owner Email (Optional)</label>
               <input
                 {...register('ownerEmail')}
                 type="email"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter store owner email (must be a store_owner user)"
               />
-              {errors.ownerEmail && (
-                <p className="mt-1 text-sm text-red-600">{errors.ownerEmail.message}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                Leave empty if no specific owner, or enter email of an existing store owner user
-              </p>
+              {errors.ownerEmail && <p className="mt-1 text-sm text-red-600">{errors.ownerEmail.message}</p>}
+              <p className="mt-1 text-xs text-gray-500">Leave empty if no specific owner, or enter email of an existing store owner user</p>
             </div>
           )}
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 pt-6">
             <button
               type="button"
               onClick={onClose}

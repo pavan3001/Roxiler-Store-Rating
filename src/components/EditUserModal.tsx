@@ -69,7 +69,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, open, onClose, onSu
   if (!open || !user) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+  <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-0">
         <div className="px-6 py-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-bold">Edit User</h2>

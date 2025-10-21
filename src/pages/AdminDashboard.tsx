@@ -110,6 +110,7 @@ const AdminDashboard: React.FC = () => {
 
   const [showEditUser, setShowEditUser] = useState(false);
   const [editUserData, setEditUserData] = useState<User | null>(null);
+
   const handleEditUser = (user: User) => {
     setEditUserData(user);
     setShowEditUser(true);
@@ -292,13 +293,13 @@ const AdminDashboard: React.FC = () => {
                         </div>
                       </th>
                     ))}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    {/* Actions column removed per request */}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {users.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-4 text-center text-gray-500">No users found.</td>
+                      <td colSpan={3} className="px-6 py-4 text-center text-gray-500">No users found.</td>
                     </tr>
                   ) : (
                     users.map((user) => (
@@ -326,7 +327,7 @@ const AdminDashboard: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.email !== 'admin@roxiler.com' ? (
+          {user.email !== 'admin@roxiler.com' ? (
                             <div className="flex items-center space-x-2">
                               <button
                                 title="Edit user"
@@ -490,7 +491,7 @@ const AdminDashboard: React.FC = () => {
                         </td>
       {/* Ratings Modal */}
       {showRatingsModal && ratingsStore && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay-light">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl relative">
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"

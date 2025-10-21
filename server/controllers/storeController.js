@@ -131,8 +131,10 @@ export {
 // Create store for authenticated store owner
 const createStoreForOwner = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const { name, email, address } = req.body;
+
+    console.info('createStoreForOwner called', { userId, body: req.body });
 
     if (!name || !email || !address) {
       return res.status(400).json({ message: 'Name, email and address are required' });
@@ -141,10 +143,11 @@ const createStoreForOwner = async (req, res) => {
     // Check if store already exists by email
     const [existingStores] = await pool.execute('SELECT id FROM stores WHERE email = ?', [email]);
     if (existingStores.length > 0) {
-      return res.status(400).json({ message: 'Store already exists with this email' });
+      console.info('createStoreForOwner - email already used', { email });
+      return res.status(400).json({ message: `Store already exists with this email: ${email}` });
     }
 
-      // NOTE: multiple stores per owner are allowed (no owner-specific guard)
+    // Allow multiple stores per owner (no owner-specific guard)
 
     const [result] = await pool.execute(
       'INSERT INTO stores (name, email, address, owner_id) VALUES (?, ?, ?, ?)',
@@ -162,8 +165,8 @@ const createStoreForOwner = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Create store for owner error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Create store for owner error:', error && error.stack ? error.stack : error);
+    res.status(500).json({ message: error?.message || 'Internal server error' });
   }
 };
 
