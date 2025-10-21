@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: roxiler-store-rating-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generator: secret
+      - key: FRONTEND_URLS
+        value: https://roxiler-rating.netlify.app

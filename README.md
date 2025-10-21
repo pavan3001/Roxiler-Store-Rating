@@ -107,6 +107,21 @@ A comprehensive full-stack web application for store rating management with role
    PORT=5000
    ```
 
+   Frontend-specific environment
+   -----------------------------
+
+   You can configure the frontend to use a specific backend API base URL by setting the Vite environment variable `VITE_API_BASE_URL` in your `.env` file at the project root. Example:
+
+   ```env
+   # For local backend
+   VITE_API_BASE_URL=http://localhost:5000/api
+
+   # Or point to your deployed Render backend
+   VITE_API_BASE_URL=https://roxiler-store-rating-raiq.onrender.com/api
+   ```
+
+   After changing `.env`, restart the frontend dev server so Vite picks up the new variable.
+
 5. **Start the application**
    ```bash
    # Start backend server
